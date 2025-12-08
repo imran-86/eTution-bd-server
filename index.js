@@ -3,6 +3,8 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 
+const jwt = require('jsonwebtoken')
+
 const cors = require("cors");
 
 const port = process.env.PORT || 3000;
@@ -23,11 +25,43 @@ async function run() {
   try {
     await client.connect();
 
-    app.get("/",  (req, res) => {
-      res.send("eTuitionBd is running!");
+    const db = client.db("eTuition-bd");
+
+    const tuitionCollections = db.collection("tuitions");
+    const tutorCollections = db.collection("tutors");
+
+
+
+    // jwt related apis
+
+   
+
+    app.post("/tuitions", async (req, res) => {
+      const tuition = req.body;
+      const result = await tuitionCollections.insertOne(tuition);
     });
+    app.get("/tutors", async (req, res) => {
+      const result = await tutorCollections
+        .find()
+        .sort({
+          submittedAt: -1,
+        })
+        .limit(8)
+        .toArray();
 
+      res.send(result);
+    });
+    app.get("/tuitions", async (req, res) => {
+      const result = await tuitionCollections
+        .find()
+        .sort({
+          createdAt: -1,
+        })
+        .limit(8)
+        .toArray();
 
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log(
@@ -38,6 +72,9 @@ async function run() {
     // await client.close();
   }
 }
+app.get("/", (req, res) => {
+  res.send("eTuitions working");
+});
 run().catch(console.dir);
 
 app.listen(port, () => {
