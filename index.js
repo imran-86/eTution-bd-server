@@ -33,7 +33,14 @@ async function run() {
 
 
     // jwt related apis
-
+     
+    app.post('/getToken',(req,res)=>{
+      const loggedUser = req.body;
+      // console.log(loggedUser);
+      
+      const token = jwt.sign(loggedUser,process.env.JWT_SECRET, {expiresIn:'2h'})
+      res.send({token:token});
+    })
    
 
     app.post("/tuitions", async (req, res) => {
