@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const app = express();
 require("dotenv").config();
@@ -40,6 +40,20 @@ async function run() {
       res.send(result)
       
     })
+    app.get('/user', async(req,res)=>{
+      const query = {};
+      const {email} = req.query;
+      // console.log(email);
+      if(email){
+        query.email = email;
+      }
+      const result = await userCollections.findOne(query);
+      // console.log(result);
+      
+      
+      res.send(result);
+      
+    })
 
 
 
@@ -54,12 +68,48 @@ async function run() {
       });
       res.send({ token: token });
     });
+    
+    // tuitions related apis
 
     app.post("/tuitions", async (req, res) => {
       const tuition = req.body;
-      console.log("tuition data ", tuition);
+      // console.log("tuition data ", tuition);
       const result = await tuitionCollections.insertOne(tuition);
     });
+     app.get('/tuitions', async(req,res)=>{
+      const query = {};
+      const {status} = req.query;
+      // console.log(status);
+      if(status){
+        query.status = status;
+      }
+      const result = await tuitionCollections.find(query).toArray();
+      // console.log(result);
+      
+      
+      res.send(result);
+      
+    })
+
+    app.patch('/tuitions/:id' , async(req,res)=>{
+      const tuitionId = req.params.id;
+      const status = req.body.status;
+      console.log(tuitionId);
+      console.log(status);
+      
+       const query = { _id: new ObjectId(tuitionId) };
+    const update = {
+      $set: {
+        status, 
+        updatedAt: new Date() 
+      }
+    };
+
+    const result = await tuitionCollections.updateOne(query , update);
+      
+    })
+
+
     app.get("/tutors", async (req, res) => {
       const result = await tutorCollections
         .find()
