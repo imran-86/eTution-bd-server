@@ -3,7 +3,7 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 
-const jwt = require('jsonwebtoken')
+const jwt = require("jsonwebtoken");
 
 const cors = require("cors");
 
@@ -29,22 +29,35 @@ async function run() {
 
     const tuitionCollections = db.collection("tuitions");
     const tutorCollections = db.collection("tutors");
+    
+    const userCollections = db.collection("users");
+    
+    // users related apis
+
+    app.post('/user' , async(req,res)=>{
+      const userData = req.body;
+      const result = await userCollections.insertOne(userData);
+      res.send(result)
+      
+    })
 
 
 
     // jwt related apis
-     
-    app.post('/getToken',(req,res)=>{
+
+    app.post("/getToken", (req, res) => {
       const loggedUser = req.body;
       // console.log(loggedUser);
-      
-      const token = jwt.sign(loggedUser,process.env.JWT_SECRET, {expiresIn:'2h'})
-      res.send({token:token});
-    })
-   
+
+      const token = jwt.sign(loggedUser, process.env.JWT_SECRET, {
+        expiresIn: "2h",
+      });
+      res.send({ token: token });
+    });
 
     app.post("/tuitions", async (req, res) => {
       const tuition = req.body;
+      console.log("tuition data ", tuition);
       const result = await tuitionCollections.insertOne(tuition);
     });
     app.get("/tutors", async (req, res) => {
@@ -58,13 +71,33 @@ async function run() {
 
       res.send(result);
     });
-    app.get("/tuitions", async (req, res) => {
+    app.get("/latest-tuitions", async (req, res) => {
       const result = await tuitionCollections
         .find()
         .sort({
           createdAt: -1,
         })
         .limit(8)
+        .toArray();
+
+      res.send(result);
+    });
+    app.get("/tuitions", async (req, res) => {
+      const result = await tuitionCollections
+        .find()
+        .sort({
+          createdAt: -1,
+        })
+        .toArray();
+
+      res.send(result);
+    });
+    app.get("/tutors", async (req, res) => {
+      const result = await tutorCollections
+        .find()
+        .sort({
+          submittedAt: -1,
+        })
         .toArray();
 
       res.send(result);
