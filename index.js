@@ -73,8 +73,26 @@ async function run() {
 
     app.get('/users', async(req,res)=>{
       const result = await userCollections.find().toArray();
-      console.log(result);;
+      // console.log(result);;
       res.send(result);
+      
+    })
+     app.put('/users/:id' , async(req,res)=>{
+      const userId = req.params.id;
+      const updatedInfo = req.body;
+      console.log(updatedInfo);
+      const query = { _id: new ObjectId(userId) };
+    const update = {
+      $set: {
+        ...updatedInfo,
+        updatedAt: new Date() 
+      }
+    };
+
+    const result = await userCollections.updateOne(query , update);
+    
+    
+    res.send(result)
       
     })
    
