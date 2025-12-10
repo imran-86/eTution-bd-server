@@ -68,8 +68,19 @@ async function run() {
       });
       res.send({ token: token });
     });
+
+    // Users related apis
+
+    app.get('/users', async(req,res)=>{
+      const result = await userCollections.find().toArray();
+      console.log(result);;
+      res.send(result);
+      
+    })
+   
+
     
-    // tuitions related apis
+    // Tuitions related apis
 
     app.post("/tuitions", async (req, res) => {
       const tuition = req.body;
@@ -90,38 +101,7 @@ async function run() {
       res.send(result);
       
     })
-
-    app.patch('/tuitions/:id' , async(req,res)=>{
-      const tuitionId = req.params.id;
-      const status = req.body.status;
-      console.log(tuitionId);
-      console.log(status);
-      
-       const query = { _id: new ObjectId(tuitionId) };
-    const update = {
-      $set: {
-        status, 
-        updatedAt: new Date() 
-      }
-    };
-
-    const result = await tuitionCollections.updateOne(query , update);
-      
-    })
-
-
-    app.get("/tutors", async (req, res) => {
-      const result = await tutorCollections
-        .find()
-        .sort({
-          submittedAt: -1,
-        })
-        .limit(8)
-        .toArray();
-
-      res.send(result);
-    });
-    app.get("/latest-tuitions", async (req, res) => {
+       app.get("/latest-tuitions", async (req, res) => {
       const result = await tuitionCollections
         .find()
         .sort({
@@ -142,6 +122,39 @@ async function run() {
 
       res.send(result);
     });
+    app.patch('/tuitions/:id' , async(req,res)=>{
+      const tuitionId = req.params.id;
+      const status = req.body.status;
+      console.log(tuitionId);
+      console.log(status);
+      
+       const query = { _id: new ObjectId(tuitionId) };
+    const update = {
+      $set: {
+        status, 
+        updatedAt: new Date() 
+      }
+    };
+
+    const result = await tuitionCollections.updateOne(query , update);
+    res.send(result)
+      
+    })
+
+    // Tutors related apis
+
+    app.get("/tutors", async (req, res) => {
+      const result = await tutorCollections
+        .find()
+        .sort({
+          submittedAt: -1,
+        })
+        .limit(8)
+        .toArray();
+
+      res.send(result);
+    });
+  
     app.get("/tutors", async (req, res) => {
       const result = await tutorCollections
         .find()
