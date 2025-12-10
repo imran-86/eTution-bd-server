@@ -80,7 +80,7 @@ async function run() {
      app.put('/users/:id' , async(req,res)=>{
       const userId = req.params.id;
       const updatedInfo = req.body;
-      console.log(updatedInfo);
+      // console.log(updatedInfo);
       const query = { _id: new ObjectId(userId) };
     const update = {
       $set: {
@@ -95,6 +95,14 @@ async function run() {
     res.send(result)
       
     })
+    app.delete('/users/:id' , async(req,res)=>{
+      const userId = req.params.id;
+      console.log(userId);
+       const query = { _id: new ObjectId(userId) };
+      const result = await userCollections.deleteOne(query);
+      res.send(result);
+      
+    })
    
 
     
@@ -105,13 +113,16 @@ async function run() {
       // console.log("tuition data ", tuition);
       const result = await tuitionCollections.insertOne(tuition);
     });
-     app.get('/tuitions', async(req,res)=>{
-      const query = {};
-      const {status} = req.query;
-      // console.log(status);
-      if(status){
-        query.status = status;
-      }
+     app.get('/tuitions/user/:email', async(req,res)=>{
+        
+      const userEmail = req.params.email;
+      // console.log(userEmail);
+      
+      const query = {
+        studentEmail : userEmail,
+        status : 'Approved'
+
+      };
       const result = await tuitionCollections.find(query).toArray();
       // console.log(result);
       
@@ -119,7 +130,7 @@ async function run() {
       res.send(result);
       
     })
-       app.get("/latest-tuitions", async (req, res) => {
+      app.get("/latest-tuitions", async (req, res) => {
       const result = await tuitionCollections
         .find()
         .sort({
@@ -130,7 +141,7 @@ async function run() {
 
       res.send(result);
     });
-    app.get("/tuitions", async (req, res) => {
+    app.get("/all-tuitions", async (req, res) => {
       const result = await tuitionCollections
         .find()
         .sort({
