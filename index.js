@@ -130,6 +130,28 @@ async function run() {
       res.send(result);
       
     })
+    app.get('/tuitions', async(req,res)=>{
+      const status = req.query.status;
+      console.log(status);
+      const query = {
+        status : 'Pending'
+      }
+      const result = await tuitionCollections.find(query).toArray();
+      res.send(result);
+      
+      
+    })
+     app.get('/tuitions/ongoing', async(req,res)=>{
+      const status = req.query.status;
+      console.log(status);
+      const query = {
+        status : 'Approved'
+      }
+      const result = await tuitionCollections.find(query).toArray();
+      res.send(result);
+      
+      
+    })
       app.get("/latest-tuitions", async (req, res) => {
       const result = await tuitionCollections
         .find()
@@ -154,12 +176,14 @@ async function run() {
     app.patch('/tuitions/:id' , async(req,res)=>{
       const tuitionId = req.params.id;
       const status = req.body.status;
+      
       console.log(tuitionId);
       console.log(status);
       
        const query = { _id: new ObjectId(tuitionId) };
     const update = {
       $set: {
+        paymentStatus : 'Make Payment',
         status, 
         updatedAt: new Date() 
       }
