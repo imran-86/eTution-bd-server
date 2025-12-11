@@ -7,6 +7,9 @@ const jwt = require("jsonwebtoken");
 
 const cors = require("cors");
 
+
+const stripe = require('stripe')(process.env.STRIPE_SECRET);
+
 const port = process.env.PORT || 3000;
 
 app.use(cors());
@@ -33,6 +36,43 @@ async function run() {
     
     const userCollections = db.collection("users");
     
+
+    // Payment relate apis
+
+      app.post("/payment-checkout-session", async (req, res) => {
+      const paymentInfo = req.body;
+      console.log(paymentInfo);
+      
+      const amount = parseInt(paymentInfo.price)*100;
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            price_data : {
+              currency: 'usd',
+              unit_amount: amount,
+              product_data: {
+                name: `Please pay for : ${paymentInfo.tuitionTitle}`
+              }
+            },
+            quantity: 1,
+          },
+        ],
+        mode: "payment",
+        metadata: {
+          parcelId: paymentInfo.tuitionId,
+          parcelName: paymentInfo.tuitionTitle
+        },
+        customer_email: paymentInfo.studentEmail,
+        success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-cancelled`,
+      });
+      res.send({url: session.url})
+    });
+
+
+
+
+
     // users related apis
 
     app.post('/user' , async(req,res)=>{
@@ -63,6 +103,17 @@ async function run() {
       // console.log(data);
       const result = await applicationCollections.insertOne(data);
       res.send(result)
+      
+    })
+    app.get('/applications/student/:email' , async(req,res)=>{
+      const studentEmail = req.params.email;
+      // console.log(studentEmail);
+      const query = {
+        studentEmail: studentEmail
+      }
+      const result = await applicationCollections.find(query).toArray();
+      res.send(result);
+      
       
     })
 
@@ -231,6 +282,15 @@ async function run() {
 
       res.send(result);
     });
+
+    app.post("/tutors" , async(req,res)=>{
+      const tutorsData = req.body;
+      console.log(tutorsData);
+      const result = await tutorCollections.insertOne(tutorsData);
+      res.send(result);
+      
+    })
+    
 
     await client.db("admin").command({ ping: 1 });
     console.log(
