@@ -16,7 +16,17 @@ app.use(cors());
 app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.gbmzdts.mongodb.net/?appName=Cluster0`;
-
+function generateTrackingId() {
+  const date = new Date();
+  const year = date.getFullYear().toString().slice(-2);
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  
+ 
+  const randomPart = crypto.randomBytes(4).toString('hex').toUpperCase();
+  
+  return `TRK-${year}${month}${day}-${randomPart}`;
+}
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -35,6 +45,8 @@ async function run() {
     const applicationCollections = db.collection("applications")
     
     const userCollections = db.collection("users");
+
+    const paymentCollections = db.collection("payment");
     
 
     // Payment relate apis
@@ -69,6 +81,8 @@ async function run() {
       res.send({url: session.url})
     });
 
+
+    
 
 
 
