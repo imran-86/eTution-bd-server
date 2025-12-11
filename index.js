@@ -2,6 +2,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const app = express();
 require("dotenv").config();
+const crypto = require('crypto');
 
 const jwt = require("jsonwebtoken");
 
@@ -71,8 +72,8 @@ async function run() {
         ],
         mode: "payment",
         metadata: {
-          parcelId: paymentInfo.tuitionId,
-          parcelName: paymentInfo.tuitionTitle
+          tuitionId: paymentInfo.tuitionId,
+          tuitionName: paymentInfo.tuitionTitle
         },
         customer_email: paymentInfo.studentEmail,
         success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
@@ -82,7 +83,75 @@ async function run() {
     });
 
 
-    
+     app.patch('/payment-success', async (req,res)=>{
+      const sessionId = req.query.session_id;
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      // console.log('session ret ', session);
+
+      // const transactionId = session.payment_intent;
+      // const query = { transactionId: transactionId}
+
+     
+
+      const trackingId = generateTrackingId();
+
+      if(session.payment_status === 'paid'){
+         const id = session.metadata.tuitionId;
+         const query = {tuitionId : id};
+         const update = {
+          $set: {
+            status: 'Approved',
+          }
+         }
+
+         const result = await applicationCollections.updateOne(query,update);
+        
+         const payment = {
+            amount: session.amount_total/100,
+            currency: session.currency,
+            studentEmail: session.customer_email,
+            tuitionId: session.metadata.tuitionId,
+            tuitionName: session.metadata.tuitionName,
+            transactionId : session.payment_intent,
+            paymentStatus: session.payment_status,
+            paidAt : new Date(),
+            trackingId: trackingId
+            
+
+         }
+
+         if(session.payment_status==='paid'){
+          const isExist = await paymentCollections.findOne({
+            transactionId : session.payment_intent,
+          })
+          if(isExist){
+             return res.send({
+                success:  true,
+                modifyParcel: result,
+                trackingId:trackingId,
+                transactionId : session.payment_intent,
+                paymentInfo: resultPayment
+               })
+            }
+            
+               const resultPayment = await paymentCollections.insertOne(payment);
+              return res.send({
+                success:  true,
+                modifyParcel: result,
+                trackingId:trackingId,
+                transactionId : session.payment_intent,
+                paymentInfo: resultPayment
+               })
+         }
+
+
+
+         
+      }
+      
+     return res.send({success : false})
+    })
+
 
 
 
