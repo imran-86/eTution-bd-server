@@ -29,6 +29,7 @@ async function run() {
 
     const tuitionCollections = db.collection("tuitions");
     const tutorCollections = db.collection("tutors");
+    const applicationCollections = db.collection("applications")
     
     const userCollections = db.collection("users");
     
@@ -55,7 +56,15 @@ async function run() {
       
     })
 
+    // applications related apis
 
+    app.post('/applications' , async(req,res)=>{
+      const data = req.body;
+      // console.log(data);
+      const result = await applicationCollections.insertOne(data);
+      res.send(result)
+      
+    })
 
     // jwt related apis
 
@@ -143,11 +152,15 @@ async function run() {
     })
      app.get('/tuitions/ongoing', async(req,res)=>{
       const status = req.query.status;
-      console.log(status);
+      // console.log(status);
       const query = {
         status : 'Approved'
       }
-      const result = await tuitionCollections.find(query).toArray();
+      const result = await tuitionCollections.find(query).sort({
+        updatedAt : -1
+      }).toArray();
+      // console.log(result);
+      
       res.send(result);
       
       
