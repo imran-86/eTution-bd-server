@@ -152,6 +152,18 @@ async function run() {
      return res.send({success : false})
     })
 
+    app.get('/payments/student/:email' , async(req,res)=>{
+      const email = req.params.email;
+      const query = {
+        studentEmail: email
+      }
+      const result = await paymentCollections.find(query).toArray();
+      // console.log(result);
+      res.send(result);
+      
+      
+    })
+
 
 
 
@@ -178,6 +190,7 @@ async function run() {
       res.send(result);
       
     })
+   
 
     // applications related apis
 
