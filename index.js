@@ -7,6 +7,7 @@ const crypto = require('crypto');
 const jwt = require("jsonwebtoken");
 
 const cors = require("cors");
+const { emit } = require("process");
 
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET);
@@ -190,7 +191,38 @@ async function run() {
       res.send(result);
       
     })
-   
+    app.get('/users/profile/:email' , async(req,res) =>{
+      const userEmail = req.params.email;
+      // console.log(userEmail);
+      const query = {
+        email : userEmail
+      }
+      const result = await userCollections.find(query).toArray();
+      res.send(result);
+      
+    })
+
+    app.put('/users/profile/:email', async(req,res)=>{
+      const userEmail = req.params.email;
+      const updatedData = req.body;
+      console.log(updatedData);
+      
+      console.log(userEmail);
+      const query = {
+        email : userEmail,
+
+      }
+       const update = {
+      $set: {
+        ...updatedData,
+        updatedAt: new Date() 
+      }
+    };
+      const result = await userCollections.updateOne(query,update);
+      res.send(result);
+      
+      
+    })
 
     // applications related apis
 
