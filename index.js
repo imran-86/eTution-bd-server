@@ -17,6 +17,34 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+
+const verifyJWTToken = (req, res , next) =>{
+  // console.log(req.headers);
+  const authorization = req.headers.authorization;
+  if(!authorization){
+    return res.status(401).send({message : 'Unauthorized access'});
+  }
+  const token = authorization.split(' ')[1];
+  if(!token){
+    return res.status(401).send({message : 'Unauthorized access'})
+  }
+
+   jwt.verify(token,process.env.JWT_SECRET, (err,decoded)=>{
+     if(err){
+      return res.status(401).send({message : 'Unauthorized access'})
+     }
+    console.log('after decoded ' , decoded);
+
+    req.token_email = decoded.email;
+    
+     next();
+   })
+
+
+  
+}
+
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.gbmzdts.mongodb.net/?appName=Cluster0`;
 function generateTrackingId() {
   const date = new Date();
@@ -74,7 +102,8 @@ async function run() {
         mode: "payment",
         metadata: {
           tuitionId: paymentInfo.tuitionId,
-          tuitionName: paymentInfo.tuitionTitle
+          tuitionName: paymentInfo.tuitionTitle,
+          tutorEmail : paymentInfo.tutorEmail
         },
         customer_email: paymentInfo.studentEmail,
         success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
@@ -111,6 +140,7 @@ async function run() {
             amount: session.amount_total/100,
             currency: session.currency,
             studentEmail: session.customer_email,
+            tutorEmail : session.metadata.tutorEmail,
             tuitionId: session.metadata.tuitionId,
             tuitionName: session.metadata.tuitionName,
             transactionId : session.payment_intent,
@@ -153,16 +183,42 @@ async function run() {
      return res.send({success : false})
     })
 
-    app.get('/payments/student/:email' , async(req,res)=>{
+    app.get('/payments/student/:email' ,verifyJWTToken, async(req,res)=>{
       const email = req.params.email;
       const query = {
         studentEmail: email
       }
+      if(email!==req.token_email){
+        return res.status(403).send({message : 'Forbidden access'})
+      }
+
       const result = await paymentCollections.find(query).toArray();
       // console.log(result);
       res.send(result);
       
       
+    })
+    app.get('/payments/tutor/:email' ,verifyJWTToken, async(req,res)=>{
+      const email = req.params.email;
+      console.log(email);
+      
+      const query = {
+        tutorEmail: email
+      }
+      if(email!==req.token_email){
+        return res.status(403).send({message : 'Forbidden access'})
+      }
+
+      const result = await paymentCollections.find(query).toArray();
+      console.log(result);
+      res.send(result);
+      
+      
+    })
+    
+    app.get('/payments' ,verifyJWTToken, async(req,res)=>{
+      const result = await paymentCollections.find().toArray();
+      res.send(result);
     })
 
 
@@ -184,6 +240,7 @@ async function run() {
       if(email){
         query.email = email;
       }
+    
       const result = await userCollections.findOne(query);
       // console.log(result);
       
@@ -197,6 +254,7 @@ async function run() {
       const query = {
         email : userEmail
       }
+      
       const result = await userCollections.find(query).toArray();
       res.send(result);
       
@@ -244,12 +302,31 @@ async function run() {
       
       
     })
+      app.get('/applications/ongoing/:email', async(req,res)=>{
+      const status = req.query.status;
+      const email = req.params.email
+      // console.log('email ',email);
+      
+      // console.log(status);
+      const query = {
+        status : 'Approved',
+        tutorEmail: email
+      }
+      const result = await applicationCollections.find(query).sort({
+        updatedAt : -1
+      }).toArray();
+      // console.log(result);
+      
+      res.send(result);
+      
+      
+    })
 
     // jwt related apis
 
     app.post("/getToken", (req, res) => {
       const loggedUser = req.body;
-      // console.log(loggedUser);
+      console.log(loggedUser);
 
       const token = jwt.sign(loggedUser, process.env.JWT_SECRET, {
         expiresIn: "2h",
@@ -301,16 +378,19 @@ async function run() {
       // console.log("tuition data ", tuition);
       const result = await tuitionCollections.insertOne(tuition);
     });
-     app.get('/tuitions/user/:email', async(req,res)=>{
+     app.get('/tuitions/user/:email', verifyJWTToken, async(req,res)=>{
         
       const userEmail = req.params.email;
-      // console.log(userEmail);
+      console.log(userEmail);
       
       const query = {
         studentEmail : userEmail,
         status : 'Approved'
 
       };
+       if(userEmail!==req.token_email){
+        return res.status(403).send({message : 'Forbidden access'})
+      }
       const result = await tuitionCollections.find(query).toArray();
       // console.log(result);
       
@@ -365,7 +445,7 @@ async function run() {
 
       res.send(result);
     });
-    app.patch('/tuitions/:id' , async(req,res)=>{
+    app.patch('/tuitions/:id' ,verifyJWTToken, async(req,res)=>{
       const tuitionId = req.params.id;
       const status = req.body.status;
       
