@@ -446,6 +446,56 @@ app.patch('/applications/:id', async (req, res) => {
       // console.log("tuition data ", tuition);
       const result = await tuitionCollections.insertOne(tuition);
     });
+     app.get('/tuitions/student/:email', async(req,res)=>{
+    const studentEmail = req.params.email;
+    const query = {
+      studentEmail : studentEmail
+    }
+    const result = await tuitionCollections.find(query).toArray();
+    console.log(result);
+    
+    res.send(result);
+    
+   })
+   app.delete('/tuitions/delete/:id', async(req,res)=>{
+    const id = req.params.id;
+    console.log('after delete call ', id);
+     const query = { _id: new ObjectId(id) };
+     const result = await tuitionCollections.deleteOne(query);
+     console.log(result);
+     res.send(result);     
+    
+   })
+  app.patch('/tuitions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const query = { _id: new ObjectId(id) };
+    const update = {
+      $set: {
+        ...updates,
+        updatedAt: new Date()
+      }
+    };
+    
+    const result = await tuitionCollections.updateOne(query, update);
+    
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ error: 'Tuition not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Tuition updated successfully',
+      modifiedCount: result.modifiedCount
+    });
+    
+  } catch (error) {
+    console.error('Error updating tuition:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
      app.get('/tuitions/user/:email', verifyJWTToken, async(req,res)=>{
         
       const userEmail = req.params.email;
