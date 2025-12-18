@@ -83,7 +83,7 @@ async function run() {
 
       app.post("/payment-checkout-session", async (req, res) => {
       const paymentInfo = req.body;
-      console.log(paymentInfo);
+      // console.log(paymentInfo);
       
       const amount = parseInt(paymentInfo.price)*100;
       const session = await stripe.checkout.sessions.create({
@@ -120,21 +120,29 @@ async function run() {
 
       // const transactionId = session.payment_intent;
       // const query = { transactionId: transactionId}
-
+    //  console.log('payment success called   ');
+     
      
 
       const trackingId = generateTrackingId();
 
       if(session.payment_status === 'paid'){
+        console.log('payment success called   ');
          const id = session.metadata.tuitionId;
-         const query = {tuitionId : id};
+         console.log(id);
+         
+         const query = {tuitionId
+ : id};
          const update = {
           $set: {
             status: 'Approved',
           }
          }
-
+        //  console.log(await applicationCollections.findOne(query));
+         
          const result = await applicationCollections.updateOne(query,update);
+         console.log(result);
+         
         
          const payment = {
             amount: session.amount_total/100,
@@ -150,7 +158,15 @@ async function run() {
             
 
          }
-
+        
+        const queryPayment = {
+          tuitionId : session.metadata.tuitionId
+        }
+        const isExistPayment = await paymentCollections.findOne(queryPayment);
+        let resultPayment; 
+        if(!isExistPayment){
+         resultPayment  = await paymentCollections.insertOne(payment);
+        }
          if(session.payment_status==='paid'){
           const isExist = await paymentCollections.findOne({
             transactionId : session.payment_intent,
@@ -165,7 +181,7 @@ async function run() {
                })
             }
             
-               const resultPayment = await paymentCollections.insertOne(payment);
+              
               return res.send({
                 success:  true,
                 modifyParcel: result,
@@ -240,9 +256,10 @@ async function run() {
       if(email){
         query.email = email;
       }
+    console.log(query);
     
       const result = await userCollections.findOne(query);
-      // console.log(result);
+      console.log(result);
       
       
       res.send(result);
@@ -283,7 +300,58 @@ async function run() {
     })
 
     // applications related apis
+   app.get('/applications/tutor/:email', async(req,res)=>{
+    const tutorEmail = req.params.email;
+    const query = {
+      tutorEmail : tutorEmail
+    }
+    const result = await applicationCollections.find(query).toArray();
+    console.log(result);
+    
+    res.send(result);
+    
+   })
+   app.delete('/applications/delete/:id', async(req,res)=>{
+    const id = req.params.id;
+    console.log('after delete call ', id);
+     const query = { _id: new ObjectId(id) };
+     const result = await applicationCollections.deleteOne(query);
+     console.log(result);
+     res.send(result);     
+    
+   })
+   // Update application by ID
+app.patch('/applications/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const { qualifications, experience, expectedSalary, updatedAt } = req.body;
 
+    const updateData = {
+      qualifications,
+      experience,
+      expectedSalary: parseFloat(expectedSalary),
+      updatedAt: updatedAt || new Date().toISOString()
+    };
+
+    const result = await applicationCollections.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).send({ message: 'Application not found' });
+    }
+
+    res.status(200).send({ 
+      message: 'Application updated successfully', 
+      modifiedCount: result.modifiedCount 
+    });
+
+  } catch (error) {
+    console.error('Error updating application:', error);
+    res.status(500).send({ message: 'Failed to update application', error: error.message });
+  }
+});
     app.post('/applications' , async(req,res)=>{
       const data = req.body;
       // console.log(data);
@@ -402,9 +470,18 @@ async function run() {
       const status = req.query.status;
       console.log(status);
       const query = {
-        status : 'Pending'
+        status : status
       }
       const result = await tuitionCollections.find(query).toArray();
+      res.send(result);
+      
+      
+    })
+    app.get('/tuition-details/:id', async(req,res)=>{
+      const tuitionId = req.params.id;
+      const query = { _id: new ObjectId(tuitionId) };
+      const result = await tuitionCollections.findOne(query);
+      console.log(result);
       res.send(result);
       
       
@@ -425,8 +502,11 @@ async function run() {
       
     })
       app.get("/latest-tuitions", async (req, res) => {
+        const query = {
+          status : 'Approved'
+        }
       const result = await tuitionCollections
-        .find()
+        .find(query)
         .sort({
           createdAt: -1,
         })
@@ -436,8 +516,11 @@ async function run() {
       res.send(result);
     });
     app.get("/all-tuitions", async (req, res) => {
+      const query = {
+        status : 'Approved'
+      }
       const result = await tuitionCollections
-        .find()
+        .find(query)
         .sort({
           createdAt: -1,
         })
@@ -465,6 +548,18 @@ async function run() {
     res.send(result)
       
     })
+    // app.patch('/remove-tuitions' , async(req,res)=>{
+    //   const tuitionId = req.body;
+    //   console.log(tuitionId);
+    //    const query = { _id: new ObjectId(tuitionId) };
+    //     const update = {
+    //   $set: {
+    //     status : 'Rejected',
+    //     updatedAt: new Date() 
+    //   }
+    // };
+      
+    // })
 
     // Tutors related apis
 
